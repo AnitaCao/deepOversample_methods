@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 #data path 
 
 #deepsmotepth = '/Users/tcroot/Google Drive/My Drive/Research/DeepSMOTE' #local
-deepsmotepth = '/home/tcvcs/datsets_files/DeepSMOTE'
+deepsmotepth = '/home/tcvcs/datasets_files/DeepSMOTE'
 
 imgtype = 'MNIST'
 dtrnimg = deepsmotepth + '/' + imgtype + '/balanced_data/'

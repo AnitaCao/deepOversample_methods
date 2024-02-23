@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
 
-deepsmotepth = '/home/tcvcs/datsets_files/DeepSMOTE'
+deepsmotepth = '/home/tcvcs/datasets_files/DeepSMOTE'
 
 imgtype = 'cifar10'
 dtrnimg = deepsmotepth + '/' + imgtype + '/balanced_data/'

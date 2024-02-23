@@ -23,6 +23,7 @@ args['save'] = True        # save weights at each epoch of training if True
 args['train'] = True       # train networks if True, else load networks from
 
 args['dataset'] = 'cifar10'  #'fmnist' # specify which dataset to use
+args['oversampler_path'] = '/home/tcvcs/datasets_files/DeepSMOTE'
 
 ## create encoder model and decoder model
 class Encoder(nn.Module):
@@ -158,7 +159,7 @@ def G_SM(X, y,n_to_sample,cl):
 #xsamp, ysamp = SM(xclass,yclass)
 
 ###############################################################################
-deepsmotepth = '/home/tcvcs/datsets_files/DeepSMOTE'
+deepsmotepth = args['oversampler_path']
 imgtype = args['dataset']
 trnimgfile = deepsmotepth + '/' + imgtype + '/0/imbalanced_images.txt'
 trnlabfile = deepsmotepth + '/' + imgtype + '/0/imbalanced_labels.txt'
