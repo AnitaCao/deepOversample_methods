@@ -1,0 +1,6 @@
+*.com
+*.zip
+*.tar
+.DS_Store
+data/
+
