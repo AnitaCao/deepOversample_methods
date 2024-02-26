@@ -1,5 +1,5 @@
 import torchvision
-from torchvision.models import resnet18
+from torchvision.models import resnet50
 from torchvision.datasets import MNIST
 from tqdm.autonotebook import tqdm
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
@@ -23,6 +23,7 @@ deepsmotepth = '/home/tcvcs/DeepOversample_reference_methods/datasets_files/Deep
 imgtype = 'MNIST'
 dtrnimg = deepsmotepth + '/' + imgtype + '/balanced_data/'
 
+#10 classes, each class has 4000 samples, 32000 samples in total.
 tri_f = os.path.join(dtrnimg, "0_trn_img_b.txt")
 print(tri_f)
 trl_f = os.path.join(dtrnimg, "0_trn_lab_b.txt")
@@ -74,26 +75,34 @@ plt.show()
 '''
 
 
-#define deepsmote minist dataset
+#define deepsmote balanced minist dataset
 class DeepSMOTE_MNIST(Dataset):
-  def __init__(self, data, labels, transform=None):
-    self.data = data
-    self.labels = labels
-    self.transform = transform
+    def __init__(self, data, labels, transform=None):
+        self.data = data
+        self.labels = labels
+        self.transform = transform
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, index):
+        sample = self.data[index]
+        label = self.labels[index]
+        if self.transform:
+            sample = self.transform(sample)
+        return sample, label
 
-  def __len__(self):
-    return len(self.data)
+# Define the transformation for the data
+transform = Compose([
+    ToTensor(), 
+    Normalize((0.5,), (0.5,)),
+    Resize((224, 224)) # Resizing to fit ResNet50 input size
+])
 
-  def __getitem__(self, index):
-    sample = self.data[index]
-    label = self.labels[index]
-    if self.transform:
-      sample = self.transform(sample)
-    return sample, label
-  
+
 # define model for MNIST
 def getModel():
-  model = resnet18(num_classes = 10)
+  model = resnet50(num_classes = 10)
   model.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
   #optimizer = optim.Adadelta(model.parameters())
   optimizer = optim.Adam(model.parameters(), lr= 1e-3)
@@ -101,12 +110,12 @@ def getModel():
   return model.to(device), loss_fn, optimizer
 
 def get_data_loader(trail_batch_size, val_batch_size):
-  train_data = DeepSMOTE_MNIST(X_train, y_train, transform=torch.Tensor)
-  test_data = DeepSMOTE_MNIST(X_test, y_test, transform=torch.Tensor)
+  train_data = DeepSMOTE_MNIST(X_train, y_train, transform)
+  test_data = DeepSMOTE_MNIST(X_test, y_test, transform)
 
-  train_dl = DataLoader(train_data, batch_size=trail_batch_size, shuffle=True) # Since my total sample size is 4000*0.8, if i choose batch_size 64, i will have about 500 batches. That's why my dataloader will have 500 items(batches).
-  test_dl = DataLoader(test_data, batch_size=val_batch_size)
-  return train_dl, test_dl
+  train_loader = DataLoader(train_data, batch_size=trail_batch_size, shuffle=True) # Since my total sample size is 4000*0.8, if i choose batch_size 64, i will have about 500 batches. That's why my dataloader will have 500 items(batches).
+  test_loader = DataLoader(test_data, batch_size=val_batch_size)
+  return train_loader, test_loader
 
 #from sklearn.metrics import classification_report
 def calculate_metric(metric_fn, true_y, pred_y):

@@ -27,7 +27,7 @@ args['save'] = True        # save weights at each epoch of training if True
 args['train'] = True       # train networks if True, else load networks from
 
 args['dataset'] = 'cifar10'  #'fmnist' # specify which dataset to use
-args['oversampler_path'] = '/home/tcvcs/datasets_files/DeepSMOTE'
+args['oversampler_path'] = '/home/tcvcs/DeepOversample_reference_methods/datasets_files/DeepSMOTE'
 
 ## create encoder model and decoder model
 class Encoder(nn.Module):
