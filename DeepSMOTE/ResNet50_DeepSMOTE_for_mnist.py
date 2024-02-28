@@ -11,7 +11,7 @@ import numpy as np
 from torch import nn, optim
 import torch
 from torchvision import datasets
-from torchvision.transforms import Compose, ToTensor, Normalize, Resize, Grayscale
+from torchvision.transforms import Compose, ToTensor, Normalize, Resize, Grayscale,ToPILImage
 from torch.utils.data import DataLoader, Dataset
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
@@ -79,7 +79,7 @@ plt.show()
 
 #define deepsmote balanced minist dataset
 class DeepSMOTE_MNIST(Dataset):
-    def __init__(self, data, labels, transform):
+    def __init__(self, data, labels, transform=None):
         self.data = data
         self.labels = labels
         self.transform = transform
@@ -89,24 +89,35 @@ class DeepSMOTE_MNIST(Dataset):
     
     def __getitem__(self, index):
         sample = self.data[index]
+        print("the sample shape before transform is: ")
+        print(sample.shape)
         label = self.labels[index]
+        
+        # Ensure sample is in (H, W, C) format
+        if sample.shape[0] == 1:
+            sample = sample.transpose((1, 2, 0))
+
         if self.transform:
-            sample = self.transform(sample)
+          print("heeeeeeeeeeeee")
+          sample = self.transform(sample)
+          print("the sample shape after transform is: ")
+          print(sample.shape)
         return sample, label
 
 # Define the transformation for the data
 transform = Compose([
+    ToPILImage(),
     Resize((224,224)),  # Resize to 224x224 pixels
-    #Grayscale(num_output_channels=3),  # Convert to 3 color channels
-    ToTensor()  # Convert to tensor
-    #Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize with ImageNet mean and standard deviation
+    Grayscale(num_output_channels=3),  # Convert to 3 color channels
+    ToTensor(),  # Convert to tensor
+    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize with ImageNet mean and standard deviation
 ])
 
 
 # define model for MNIST
 def getModel():
   model = resnet50(pretrained = True)
-  model.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+  #model.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
   num_ftrs = model.fc.in_features
   model.fc = nn.Linear(num_ftrs, 10) 
   optimizer = optim.Adam(model.parameters(), lr= 1e-3)
@@ -114,8 +125,8 @@ def getModel():
   return model.to(device), loss_fn, optimizer
 
 def get_data_loader(trail_batch_size, val_batch_size):
-  train_data = DeepSMOTE_MNIST(X_train, y_train, Compose([Resize((224,224)), ToTensor()])
-  test_data = DeepSMOTE_MNIST(X_test, y_test, Compose([Resize((224,224)), ToTensor()])
+  train_data = DeepSMOTE_MNIST(X_train, y_train, transform=transform)
+  test_data = DeepSMOTE_MNIST(X_test, y_test, transform=transform)
   train_loader = DataLoader(train_data, batch_size=trail_batch_size, shuffle=True) # Since my total sample size is 4000*0.8, if i choose batch_size 64, i will have about 500 batches. That's why my dataloader will have 500 items(batches).
   test_loader = DataLoader(test_data, batch_size=val_batch_size)
   return train_loader, test_loader
