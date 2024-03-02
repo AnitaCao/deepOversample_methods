@@ -1,4 +1,4 @@
-import torchvision
+#import torchvision
 from torchvision.models import resnet50
 from torchvision.datasets import MNIST
 #from tqdm.autonotebook import tqdm
@@ -188,7 +188,7 @@ for epoch in range(epochs):
   model.train()
   train_loss = 0
   for i, data in enumerate(train_dl):
-    X, y = data[0].to(device), data[1].to(device)
+    X, y = data.to(device)
     model.zero_grad()
     outputs = model(X)
     loss = loss_fn(outputs, y.to(torch.int64))
@@ -209,7 +209,8 @@ for epoch in range(epochs):
   val_loss = 0
   with torch.no_grad():
     for i, data in enumerate(test_dl):
-      X, y = data[0].to(device), data[1].to(device)
+      #X, y = data[0].to(device), data[1].to(device)
+      X, y = data.to(device)
       outputs = model(X)
       val_loss += loss_fn(outputs, y.to(torch.int64)).item()
 
