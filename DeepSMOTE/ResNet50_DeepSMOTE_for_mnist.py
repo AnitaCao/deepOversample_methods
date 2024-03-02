@@ -89,8 +89,8 @@ class DeepSMOTE_MNIST(Dataset):
     
     def __getitem__(self, index):
         sample = self.data[index]
-        print("the sample shape before transform is: ")
-        print(sample.shape)
+        #print("the sample shape before transform is: ")
+        #print(sample.shape)
         label = self.labels[index]
         
         # Ensure sample is in (H, W, C) format
@@ -98,10 +98,10 @@ class DeepSMOTE_MNIST(Dataset):
             sample = sample.transpose((1, 2, 0))
 
         if self.transform:
-          print("heeeeeeeeeeeee")
+          #print("heeeeeeeeeeeee")
           sample = self.transform(sample)
-          print("the sample shape after transform is: ")
-          print(sample.shape)
+          #print("the sample shape after transform is: ")
+          #print(sample.shape)
         return sample, label
 
 # Define the transformation for the data
@@ -135,7 +135,7 @@ def get_data_loader(trail_batch_size, val_batch_size):
 from sklearn.metrics import confusion_matrix, accuracy_score
   
 def calculate_metric(true_y, pred_y):
-    confMat=confusion_matrix(true_y, pred_y)
+    confMat=confusion_matrix(true_y, pred_y,labels=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     nc=np.sum(confMat, axis=1)
     tp=np.diagonal(confMat)
     tpr=tp/nc
@@ -158,7 +158,7 @@ def plot_learning_curve(train_losses,validation_losses):
   plt.show()
 
 
-epochs = 10 #20
+epochs = 20
 batch_size = 64
 start_ts = time.time()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -177,18 +177,27 @@ val_batches = len(test_dl)
 iter=int(epochs*len(train_dl)) #number of iterations, total number of batches
 c=10  #number of classes
 
+#initialize the variables to save the metrics
+#I will save the metrics for each batch, so the size of the arrays will be iter.
+#I only saved the testing metrics, but we can save the training metrics as well if needed.
 acsaSaveTr, gmSaveTr, accSaveTr=np.zeros((iter,)), np.zeros((iter,)), np.zeros((iter,))
 acsaSaveTs, gmSaveTs, accSaveTs=np.zeros((iter,)), np.zeros((iter,)), np.zeros((iter,))
 confMatSaveTr, confMatSaveTs=np.zeros((iter, c, c)), np.zeros((iter, c, c))
 tprSaveTr, tprSaveTs=np.zeros((iter, c)), np.zeros((iter, c))
 
 train_losses, validation_losses = [], []
+model = model.to(device)
+
+best_val_loss = float('inf')
 
 for epoch in range(epochs):
   model.train()
   train_loss = 0
-  for i, data in enumerate(train_dl):
-    X, y = data.to(device)
+  for i, (inputs, labels) in enumerate(train_dl):
+    #X, y = data.to(device)
+    X = inputs.to(device)
+    y = labels.to(device)
+
     model.zero_grad()
     outputs = model(X)
     loss = loss_fn(outputs, y.to(torch.int64))
@@ -208,9 +217,10 @@ for epoch in range(epochs):
   model.eval()
   val_loss = 0
   with torch.no_grad():
-    for i, data in enumerate(test_dl):
+    for i, (inputs, labels) in enumerate(test_dl):
       #X, y = data[0].to(device), data[1].to(device)
-      X, y = data.to(device)
+      X = inputs.to(device)
+      y = labels.to(device)
       outputs = model(X)
       val_loss += loss_fn(outputs, y.to(torch.int64)).item()
 
@@ -220,12 +230,24 @@ for epoch in range(epochs):
       confMatSaveTs[epoch*val_batches+i, :, :]=confMat
       tprSaveTs[epoch*val_batches+i, :]=tpr
       print(f'Epoch {epoch+1}/{epochs}, batch {i+1}/{val_batches}, acsa: {acsa}, gm: {gm}, acc: {acc}')
+    
     validation_losses.append(val_loss/val_batches)
     print(f'Epoch {epoch+1}/{epochs}, validation loss: {val_loss/val_batches}')
 
-
+    if val_loss < best_val_loss:
+      best_val_loss = val_loss
+      best_model_path = deepsmotepth + '/' + imgtype + '/balanced_data/' + 'best_model.pth'
+      torch.save(model.state_dict(), best_model_path)
+      print(f'Best model saved at epoch {epoch+1}')
 
 print(f"Training time: {time.time()-start_ts}s")
+
+#-----------------Save the metrics---------------------
+#save the metrics
+savePath=deepsmotepth + '/' + imgtype + '/balanced_data/'
+recordSave=savePath+'Record'
+np.savez(recordSave, acsaSaveTr=acsaSaveTr, gmSaveTr=gmSaveTr, accSaveTr=accSaveTr, acsaSaveTs=acsaSaveTs, 
+    gmSaveTs=gmSaveTs, accSaveTs=accSaveTs, confMatSaveTr=confMatSaveTr, confMatSaveTs=confMatSaveTs, tprSaveTr=tprSaveTr, tprSaveTs=tprSaveTs)
 
 plot_learning_curve(train_losses,validation_losses)
 
