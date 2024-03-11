@@ -2,19 +2,19 @@
 
 #This file is to create imblanced datasets and store them in txt files for DeepSMOTE (or other methods) to use.
 
-#import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Subset,Dataset
 import numpy as np
 import os
-#import zipfile
 from PIL import Image
 import os
 import pandas as pd
 
+'''
 # Desired class ratios
 class_ratios = [4000, 2000, 1000, 750, 500, 350, 200, 100, 60, 40]
 num_classes = 10
+'''
 
 #--------------------------FMNIST-DATA-PROCESSING---------------------------------
 def create_imblanced_fmnist(class_ratios, num_classes):
@@ -116,11 +116,11 @@ class CelebAHairColorDataset(Dataset):
 
     def __getitem__(self, idx):
         img_name = self.image_filenames[idx]
-        print("img_name:")
-        print(img_name)
+        #print("img_name:")
+        #print(img_name)
         label = self.labels[img_name]
-        print("label:")
-        print(label)
+        #print("label:")
+        #print(label)
         image = Image.open(os.path.join(self.image_dir, img_name))
         if self.transform:
             image = self.transform(image)
@@ -129,7 +129,7 @@ class CelebAHairColorDataset(Dataset):
 
 def create_imblanced_celeba(image_dir,annotations_file):  
     # Define transformations
-    transform = transforms.Compose([transforms.Resize((224,224)),transforms.ToTensor()])
+    transform = transforms.Compose([transforms.Resize((64,64)),transforms.ToTensor()])
     hair_color_classes = ['Blond_Hair', 'Black_Hair', 'Bald', 'Brown_Hair', 'Gray_Hair']
     class_ratios = [15000, 1500, 750, 300, 150]
     num_classes = 5
@@ -139,18 +139,30 @@ def create_imblanced_celeba(image_dir,annotations_file):
     indices = []
     hair_color_labels = {}
     for class_id, num_samples in enumerate(class_ratios):
-        # Find indices of all samples belonging to the current class
+        # Find indices of all samples belonging to the current class and not belonging to any other hair color class 
         class_indices = np.where(np.array(annotation[hair_color_classes[class_id]]) == 1)[0]
-        print("class_indices: " )
-        print(class_indices)
-        # Randomly select 'num_samples' indices from the class_indices
-        selected_indices = np.random.choice(class_indices, num_samples, replace=False)
+        exclusive_indices = []
+        for idx in class_indices:
+            if sum(annotation.iloc[idx][hair_color_classes]) == -3: #all the other 4 attributes are -1. 
+                exclusive_indices.append(idx)
+
+        class_indices = np.array(exclusive_indices)
+        if len(class_indices) > num_samples:
+            selected_indices = np.random.choice(class_indices, num_samples, replace=False)
+        else:
+            selected_indices = exclusive_indices
+            print(f"not enough exclusive samples for class: {hair_color_classes[class_id]}. Selecting {len(selected_indices)} exclusive samples.")
+
+        print("selected_indices: ")
+        print(len(selected_indices))
         #select the images names from the image_dir based on selected indices and add label to the images and store image name and label pairs into a dictoinary
         for idx in selected_indices:
             img_name = annotation.index[idx]
             hair_color_labels[img_name] = class_id
-    print("hair_color_labels: ")
-    print(hair_color_labels)
+        print("current hair_color_labels length: ")
+        print(len(hair_color_labels))    
+    print("total hair_color_labels: ")
+    print(len(hair_color_labels))
     # Create the imbalanced dataset  
     imbalanced_dataset = CelebAHairColorDataset(image_dir, hair_color_labels, transform=transform)
     return imbalanced_dataset
@@ -179,13 +191,9 @@ def load_celeba_from_txt(image_file_path, label_file_path):
         labels = np.array([int(line.strip()) for line in lbl_file])    
     return images, labels
 
-
-
-
+'''
 #------------TESTING----------------------------------------
-
 # File paths
-
 parent_dir = os.path.dirname(os.getcwd())
 deepsmotepth = os.path.join(parent_dir, 'datasets_files', 'DeepSMOTE')
 #deepsmotepth = './datsets_files/DeepSMOTE' #pc local
@@ -194,49 +202,15 @@ imgtype = 'celebA'
 image_0_set_path = os.path.join(deepsmotepth, imgtype, '0')
 image_file_path = os.path.join(image_0_set_path, 'imbalanced_images.txt')
 label_file_path = os.path.join(image_0_set_path, 'imbalanced_labels.txt')
-#image_file_path = deepsmotepth + '/' + imgtype + '/0/' + 'imbalanced_images.txt'
-#label_file_path = deepsmotepth + '/' + imgtype + '/0/' + 'imbalanced_labels.txt'
+
 
 celeba_data_path = os.path.join(parent_dir, 'data', 'celeba')
-image_dir = os.path.join(celeba_data_path, 'celeba_imgs')
+image_dir = os.path.join(celeba_data_path, 'img_align_celeba')
 attributes_path = os.path.join(celeba_data_path, 'list_attr_celeba.txt')
-
-
-
-
-
-hair_color_classes = ['Blond_Hair', 'Black_Hair', 'Bald', 'Brown_Hair', 'Gray_Hair']
-class_ratios = [15000, 1500, 750, 300, 150]
-num_classes = 5
-annotation = pd.read_csv(attributes_path, delim_whitespace=True, skiprows=1)
-
-    # Create the imbalanced dataset
-indices = []
-hair_color_labels = {}
-for class_id, num_samples in enumerate(class_ratios):
-    # Find indices of all samples belonging to the current class
-    class_indices = np.where(np.array(annotation[hair_color_classes[class_id]]) == 1)[0]
-    print("class_indices: " )
-    print(class_indices)
-    # Randomly select 'num_samples' indices from the class_indices
-    selected_indices = np.random.choice(class_indices, num_samples, replace=False)
-    #select the images names from the image_dir based on selected indices and add label to the images and store image name and label pairs into a dictoinary
-    for idx in selected_indices:
-        img_name = annotation.index[idx]
-        hair_color_labels[img_name] = class_id
-print("hair_color_labels: ")
-print(hair_color_labels)
-
-
-
-
-
-
-
-
 
 imblanced_celeba = create_imblanced_celeba(image_dir,attributes_path)
 print("Imbalanced dataset created successfully.")
+print(imblanced_celeba)
 
 save_celeba_txt(image_file_path, label_file_path, imblanced_celeba)
 print("Dataset saved to text files successfully.")
@@ -254,3 +228,22 @@ for i, ax in enumerate(axes):
     ax.axis('off')  
 plt.show()
 #------------------------------------------------------------
+#some of the samples are not exclusive. 
+import matplotlib.pyplot as plt
+image_names = ['151875.jpg', '160692.jpg', '035874.jpg', '085821.jpg', '190912.jpg']
+fig, axes = plt.subplots(1, 5, figsize=(20, 5))
+for i, ax in enumerate(axes):
+    image = Image.open(os.path.join(image_dir, image_names[i]))
+    ax.imshow(image)
+    ax.axis('off')
+plt.show()
+
+#print the annotations of the list of images based on the image names
+# Print the annotations of the sample images
+annotation = pd.read_csv(attributes_path, delim_whitespace=True, skiprows=1)
+for img_name in image_names:
+    print(f"Annotations for {img_name}:")
+    print(annotation.loc[img_name])
+    print()
+
+'''
