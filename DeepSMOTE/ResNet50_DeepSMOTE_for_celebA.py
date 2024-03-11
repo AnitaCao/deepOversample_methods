@@ -148,7 +148,7 @@ start_ts = time.time()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("The model will be running on", device, "device")
 
-model, loss_fn, optimizer = getModel()
+model, optimizer,loss_fn = getModel()
 print(model)
 model.to(device)
 
