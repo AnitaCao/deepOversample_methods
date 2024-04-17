@@ -8,5 +8,5 @@ DeepSMOTE/__pycache__
 */__pycache__
 *.h5
 *.csv
-.npz
-.pkl
+*.npz
+*.pkl
