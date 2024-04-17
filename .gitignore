@@ -5,3 +5,4 @@
 data/
 datasets_files/
 DeepSMOTE/__pycache__
+*.h5
