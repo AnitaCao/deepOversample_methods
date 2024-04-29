@@ -5,3 +5,8 @@
 data/
 datasets_files/
 DeepSMOTE/__pycache__
+*/__pycache__
+*.h5
+*.csv
+*.npz
+*.pkl
