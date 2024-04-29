@@ -10,3 +10,4 @@ DeepSMOTE/__pycache__
 *.csv
 *.npz
 *.pkl
+CMO/logs/
